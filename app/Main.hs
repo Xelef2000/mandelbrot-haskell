@@ -30,7 +30,7 @@ pixelSize :: Float
 pixelSize = 10
 
 windowSize :: (Int, Int)
-windowSize = (400, 400)
+windowSize = (800, 800)
 
 
 -- (x,yPos, inSet decisionLimit (x :+ yPos))
@@ -44,15 +44,15 @@ generateFrame :: Float -> Float -> Float -> Float -> Float -> Float -> [[Cell]]
 generateFrame xMin xMax yMin yMax xRes yRes = [generateRow y xMin xMax xRes | y <- [yMin, yMin + yRes .. yMax]]
 
 
-displayCell :: Float -> Cell -> Picture
-displayCell s (Cell x y value) = translate (unscale x) (unscale y) (color (if value then black else white) (rectangleSolid (s*pixelSize) (s*pixelSize)))
-  where unscale x = x * 200
+displayCell :: Cell -> Picture
+displayCell (Cell x y value) = translate (unscale x) (unscale y) (color (if value then black else white) (rectangleSolid pixelSize pixelSize))
+  where unscale x = (x+2) * 200
 
-displayRow :: Float -> [Cell] -> Picture
-displayRow s row = pictures $ map (displayCell s) row
+displayRow :: [Cell] -> Picture
+displayRow row = pictures $ map displayCell row
 
-displayFrame ::Float -> [[Cell]] -> Picture
-displayFrame s frame = pictures $ map (displayRow s) frame
+displayFrame :: [[Cell]] -> Picture
+displayFrame frame = pictures $ map displayRow frame
 
 
 getVisibleCoordinates :: ViewPort -> (Float, Float, Float, Float)
@@ -70,26 +70,28 @@ getVisibleCoordinates viewport = (minX, maxX, minY, maxY)
 
 
 
-generateNewFrame :: ViewPort -> Float -> Picture -> Picture
-generateNewFrame vp _ _ = displayFrame s $ generateFrame (lscale minX) (lscale maxX) (lscale minY) (lscale maxY) 0.05 0.05
+generateNewFrame :: ViewPort -> Float -> [[Cell]] -> [[Cell]]
+generateNewFrame vp _ _ = generateFrame (lscale minX) (lscale maxX) (lscale minY) (lscale maxY) 0.05 0.05
   where
     (minX, maxX, minY, maxY) = getVisibleCoordinates vp
-    s = viewPortScale vp
-    lscale x = x / 200
-
+    lscale x = (x / 200) - 2
 
 initTest :: Picture
 initTest = pictures [Text "Hello", Text "World"]
 
 -- show the viewport
 transitionTest :: ViewPort -> Float -> Picture -> Picture
-transitionTest vp _ _ =   Scale 0.15 0.15 $ Text $ show (minX, maxX, minY, maxY)
-  where (minX, maxX, minY, maxY) = getVisibleCoordinates vp
+transitionTest vp _ _ =   Scale 0.15 0.15 $ Text $ show ( unscale $ lscale minX, unscale $ lscale maxX, unscale $ lscale minY,unscale $ lscale maxY)
+  where 
+    (minX, maxX, minY, maxY) = getVisibleCoordinates vp
+    lscale x = (x / 200) - 2
+    unscale x = (x+2) * 200
+
 
 main :: IO ()
--- main = simulate (InWindow "Mandelbrot" (800, 800) (0, 0)) white 1 initTest id transitionTest
+main = simulate (InWindow "Mandelbrot" (800, 800) (0, 0)) white 1 initTest id transitionTest
 
-main = simulate (InWindow "Mandelbrot" windowSize (0, 0)) white 1 (displayFrame 1 (generateFrame (-2) 2 (-2) 2 0.05 0.05)) id generateNewFrame
--- main = display (InWindow "Mandelbrot" (800, 800) (0, 0)) white (displayFrame (generateFrame (-2) 2 (-2) 2 0.01 0.01))
+-- main = simulate (InWindow "Mandelbrot" windowSize (0, 0)) white 10 (generateFrame (-2) 2 (-2) 2 0.05 0.05) displayFrame generateNewFrame
+-- main = display (InWindow "Mandelbrot" (800, 800) (0, 0)) white (displayFrame (generateFrame (-2) 2 (-2) 2 0.002 0.002))
 -- main = do
 --   print $ generateFrame (-2) 2 (-2) 2 0.5 0.5
